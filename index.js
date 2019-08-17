@@ -116,14 +116,17 @@ function parseServer(line) {
         structuredData = serverData[8];
         message = serverData[9];
         severity = prival & 7;
+
+        instance.logsource = logsource.server;
+        instance.program = app;
+        instance.host = host;
+        instance.timestamp = timestamp;
+        instance.message = message;
+        instance.type = getServerEventType(severity);
+        lastTimestamp = timestamp;
+        // console.log('>>> structured data:', structuredData);
     }
-    instance.logsource = logsource.server;
-    instance.program = app;
-    instance.host = host;
-    instance.timestamp = timestamp;
-    instance.message = message;
-    instance.type = getServerEventType(severity);
-    // console.log('>>> structured data:', structuredData);
+
     return instance;
 }
 
