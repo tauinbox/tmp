@@ -7,7 +7,9 @@ const event = {
 };
 const type = {
     info: 'INFO',
-    error: 'ERROR'
+    error: 'ERROR',
+    warning: 'WARNING',
+    debug: 'DEBUG'
 };
 const logsource = {
     client: 'client',
@@ -16,6 +18,7 @@ const logsource = {
 const clientFields = {
     type: true, message: true, error: true, timestamp: true, environment: true, ip: true, app: true
 };
+const filter = process.argv[3];
 const clientRegExp = /^{"type":.+"client".+}$/i;
 const serverRegExp = /^<\d{1,3}>\d/i;
 let lastTimestamp = '';
@@ -134,7 +137,13 @@ function getNewInstance() {
 
 function sendParsedData(data) {
     // here we can send parsed data to a stream or just push it into array
-    parsedData.push(data);
+    if (filter) {
+        if (data.type === filter) {
+            parsedData.push(data);
+        }
+    } else {
+        parsedData.push(data);
+    }
 }
 
 function printoutResult() {
