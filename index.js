@@ -20,13 +20,12 @@ const logsource = {
 const clientFields = {
     type: true, message: true, error: true, timestamp: true, environment: true, ip: true, app: true
 };
-const filter = process.argv[3];
+const filter = process.argv[3] ? process.argv[3].toUpperCase() : null;
 const clientRegExp = /^{"type":\s+"client".+}$/i;
-const serverRegExp = /^<(\d{1,3})>\d (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z) (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) (\w+) (\d+) (\S+) (\[.+\]) (.+)$/i;
+const serverRegExp = /^<(\d{1,3})>(\d+) (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z) (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) (\w+) (\d+) (\S+) (\[.+\]) (.+)$/i;
 let lastTimestamp = '';
 let stacktraceMessage = '';
 let stacktraceFlag = false;
-const parsedData = [];
 
 const lr = lineReader.createInterface({
     input: fs.createReadStream(process.argv[2] || 'complex.log'),
@@ -35,7 +34,7 @@ const lr = lineReader.createInterface({
 });
 
 lr.on(event.line, parseLine);
-lr.on(event.close, printoutResult);
+lr.on(event.close, finalize);
 
 ////////////////////////////////////////////////////////////////////
 function parseLine(line) {
@@ -53,7 +52,7 @@ function parseLine(line) {
             if (stacktraceFlag) {
                 finalizeStacktrace();
             }
-            result = parseServer();
+            result = parseServer(line);
             sendParsedData(result);
             break;
         default:
@@ -102,9 +101,45 @@ function parseClient(line) {
     return instance;
 }
 
-function parseServer() {
+function parseServer(line) {
+    let prival, version, timestamp, host, app, pid, mid, structuredData, message, severity;
+    const serverData = serverRegExp.exec(line);
     let instance = getNewInstance();
+    if (serverData.length) {
+        prival = parseInt(serverData[1], 10);
+        version = serverData[2];
+        timestamp = serverData[3];
+        host = serverData[4];
+        app = serverData[5];
+        pid = serverData[6];
+        mid = serverData[7];
+        structuredData = serverData[8];
+        message = serverData[9];
+        severity = prival & 7;
+    }
+    instance.logsource = logsource.server;
+    instance.program = app;
+    instance.host = host;
+    instance.timestamp = timestamp;
+    instance.message = message;
+    instance.type = getServerEventType(severity);
+    // console.log('>>> structured data:', structuredData);
     return instance;
+}
+
+function getServerEventType(severity) {
+    switch (true) {
+        case (severity >= 0 && severity <= 3):
+            return type.error;
+        case severity === 4:
+            return type.warning;
+        case (severity >= 5 && severity <= 6):
+            return type.info;
+        case severity === 7:
+            return type.debug;
+        default:
+            return null;
+    }
 }
 
 function checkClientForAdvancedFields(clientData) {
@@ -138,19 +173,17 @@ function getNewInstance() {
 }
 
 function sendParsedData(data) {
-    // here we can send parsed data to a stream or just push it into array
     if (filter) {
         if (data.type === filter) {
-            parsedData.push(data);
+            console.log(data);
         }
     } else {
-        parsedData.push(data);
+        console.log(data);
     }
 }
 
-function printoutResult() {
+function finalize() {
     if (stacktraceFlag) {
         finalizeStacktrace();
     }
-    console.log('result:', parsedData);
 }
