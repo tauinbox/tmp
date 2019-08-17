@@ -21,8 +21,8 @@ const clientFields = {
     type: true, message: true, error: true, timestamp: true, environment: true, ip: true, app: true
 };
 const filter = process.argv[3];
-const clientRegExp = /^{"type":.+"client".+}$/i;
-const serverRegExp = /^<\d{1,3}>\d/i;
+const clientRegExp = /^{"type":\s+"client".+}$/i;
+const serverRegExp = /^<(\d{1,3})>\d (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z) (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) (\w+) (\d+) (\S+) (\[.+\]) (.+)$/i;
 let lastTimestamp = '';
 let stacktraceMessage = '';
 let stacktraceFlag = false;
