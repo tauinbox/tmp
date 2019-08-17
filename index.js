@@ -9,6 +9,10 @@ const type = {
     info: 'INFO',
     error: 'ERROR'
 };
+const logsource = {
+    client: 'client',
+    server: 'server'
+};
 const clientFields = {
     type: true, message: true, error: true, timestamp: true, environment: true, ip: true, app: true
 };
@@ -49,7 +53,7 @@ function parseClient(line) {
     }
     // console.log('clientData:', clientData);
     const isItInfo = clientData.hasOwnProperty('message');
-    instance.logsource = 'client';
+    instance.logsource = logsource.client;
     isItInfo ? instance.type = type.info : instance.type = type.error;
     (clientData.message || clientData.error) && (instance.message = isItInfo ? clientData.message : clientData.error);
     clientData.app && (instance.program = clientData.app);
