@@ -1,2 +1,3 @@
 {"type": "client", "message": "An application event log entry..", "timestamp": 1518176440, "environment": "prod", "ip": "127.0.0.1", "app": "client_app"}
 {"type": "client", "error": "Error!", "timestamp": 1518176440, "environment": "prod", "ip": "127.0.0.1", "app": "client_app"}
+{"type": "client", "message": "Message", "timestamp": 1518176440, "environment": "prod", "ip": "127.0.0.1", "app": "client_app", "user_id": 1}
