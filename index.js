@@ -22,7 +22,7 @@ const clientFields = {
 };
 const filter = process.argv[3] ? process.argv[3].toUpperCase() : null;
 const clientRegExp = /^{"type":\s+"client".+}$/i;
-const serverRegExp = /^<(\d{1,3})>(\d+) (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z) (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) (\w+) (\d+) (\S+) (\[.+\]) (.+)$/i;
+const serverRegExp = /^<(\d{1,3})>(\d+) (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z) (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) (\w+) (\d+) (\S+) (\[.+]) (.+)$/i;
 let lastTimestamp = '';
 let stacktraceMessage = '';
 let stacktraceFlag = false;
@@ -36,7 +36,7 @@ const lr = lineReader.createInterface({
 lr.on(event.line, parseLine);
 lr.on(event.close, finalize);
 
-////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 function parseLine(line) {
     let result;
     line = line.trim();
@@ -124,7 +124,7 @@ function parseServer(line) {
         instance.message = message;
         instance.type = getServerEventType(severity);
         lastTimestamp = timestamp;
-        // console.log('>>> structured data:', structuredData);
+        console.log('>>> structured data:', structuredData);
     }
 
     return instance;
