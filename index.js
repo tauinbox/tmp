@@ -1,3 +1,5 @@
+// Usage: node index.js [logfile.log] [filter, e.g. ERROR]
+
 const fs = require('fs');
 const lineReader = require('readline');
 
@@ -27,7 +29,7 @@ let stacktraceFlag = false;
 const parsedData = [];
 
 const lr = lineReader.createInterface({
-    input: fs.createReadStream(process.argv[2] || 'client.log'),
+    input: fs.createReadStream(process.argv[2] || 'complex.log'),
     // output: process.stdout,
     // console: false
 });
