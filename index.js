@@ -16,7 +16,11 @@ const logsource = {
 const clientFields = {
     type: true, message: true, error: true, timestamp: true, environment: true, ip: true, app: true
 };
-const clientRegExp = /^{.+}$/i;
+const clientRegExp = /^{"type":.+"client".+}$/i;
+const serverRegExp = /^<\d{1,3}>\d/i;
+let lastTimestamp = '';
+let stacktraceMessage = '';
+let stacktraceFlag = false;
 const parsedData = [];
 
 const lr = lineReader.createInterface({
@@ -30,12 +34,27 @@ lr.on(event.close, printoutResult);
 
 ////////////////////////////////////////////////////////////////////
 function parseLine(line) {
-    // console.log('Line from file:', line);
+    let result;
     line = line.trim();
-    if (isItClient(line)) {
-        parsedData.push(parseClient(line));
-    } else {
-        parseServer(line);
+    switch (true) {
+        case isItClient(line):
+            if (stacktraceFlag) {
+                finalizeStacktrace();
+            }
+            result = parseClient(line);
+            sendParsedData(result);
+            break;
+        case isItServer(line):
+            if (stacktraceFlag) {
+                finalizeStacktrace();
+            }
+            result = parseServer();
+            sendParsedData(result);
+            break;
+        default:
+            stacktraceFlag = true;
+            stacktraceMessage = (stacktraceMessage ? stacktraceMessage + ' | ' : '') + line;
+            break;
     }
 }
 
@@ -43,15 +62,28 @@ function isItClient(line) {
     return clientRegExp.test(line);
 }
 
+function isItServer(line) {
+    return serverRegExp.test(line);
+}
+
+function finalizeStacktrace() {
+    stacktraceFlag = false;
+    let instance = getNewInstance();
+    instance.timestamp = lastTimestamp;
+    instance.message = stacktraceMessage;
+    instance.type = type.error;
+    stacktraceMessage = '';
+    sendParsedData(instance);
+}
+
 function parseClient(line) {
     let clientData, instance = getNewInstance();
     try {
         clientData = JSON.parse(line);
     } catch (e) {
-        console.log('Unable to parse client data', e);
+        // console.log('Unable to parse client data', e);
         return instance;
     }
-    // console.log('clientData:', clientData);
     const isItInfo = clientData.hasOwnProperty('message');
     instance.logsource = logsource.client;
     isItInfo ? instance.type = type.info : instance.type = type.error;
@@ -59,9 +91,14 @@ function parseClient(line) {
     clientData.app && (instance.program = clientData.app);
     clientData.ip && (instance.host = clientData.ip);
     clientData.environment && (instance.env = clientData.environment);
-    clientData.timestamp && (instance.timestamp = new Date(clientData.timestamp).toISOString());
+    clientData.timestamp && (instance.timestamp = clientTimestamp(clientData.timestamp));
     instance._data = checkClientForAdvancedFields(clientData);
 
+    return instance;
+}
+
+function parseServer() {
+    let instance = getNewInstance();
     return instance;
 }
 
@@ -76,8 +113,10 @@ function checkClientForAdvancedFields(clientData) {
     return advancedFields;
 }
 
-function parseServer() {
-
+function clientTimestamp(timestamp) {
+    timestamp = new Date(timestamp).toISOString();
+    lastTimestamp = timestamp;
+    return timestamp;
 }
 
 function getNewInstance() {
@@ -93,6 +132,14 @@ function getNewInstance() {
     };
 }
 
+function sendParsedData(data) {
+    // here we can send parsed data to a stream or just push it into array
+    parsedData.push(data);
+}
+
 function printoutResult() {
+    if (stacktraceFlag) {
+        finalizeStacktrace();
+    }
     console.log('result:', parsedData);
 }

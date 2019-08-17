@@ -1,1 +1,2 @@
 <13>1 2018-02-09T12:00:00.003Z 127.0.0.1 app 10000 - [info@app env="prod" type="server"] Server log
+<11>1 2018-02-09T12:00:00.003Z 127.0.0.1 app 10000 - [info@app env="prod" type="server" some="data"][data@app some="data"] Error
