@@ -1,4 +1,4 @@
-{"type": "client", "message": "An application event log entry..", "timestamp": 1518176440, "environment": "prod", "ip": "127.0.0.1", "app": "client_app"}
+{"type": "client", "message": "An application event log entry..", "timestamp": 1518176440, "environment": "dev", "ip": "127.0.0.1", "app": "client_app"}
 {"type": "client", "error": "Error!", "timestamp": 1518176440, "environment": "prod", "ip": "127.0.0.1", "app": "client_app"}
 BadRequestError: request aborted
     at emitNone (events.js:105:13)
@@ -9,8 +9,9 @@ BadRequestError: request aborted
     at Socket.emit (events.js:210:7)
     at TCP._handle.close [as _onclose] (net.js:547:12)
 {"type": "client", "message": "Message", "timestamp": 1518176440, "environment": "prod", "ip": "127.0.0.1", "app": "client_app", "user_id": 1}
-<13>1 2018-02-09T12:00:00.003Z 127.0.0.1 app 10000 - [info@app env="prod" type="server"] Server log
-<11>1 2018-02-09T12:00:00.003Z 127.0.0.1 app 10000 - [info@app env="prod" type="server" some="data"][data@app some="data"] Error
+<13>1 2018-02-09T12:00:00.003Z 127.0.0.1 app 10000 - [info@app env="prod" type="server" element="element data"] Server log
+<13>1 2018-02-09T12:00:00.003Z 127.0.0.1 application 20000 - [] Some log
+<11>1 2018-02-09T12:00:00.003Z 127.0.0.1 app 30000 - [info@app env="dev" type="server" some="data"][data@app some="data"] Error
 BadRequestError: request aborted
     at emitNone (events.js:105:13)
     at IncomingMessage.emit (events.js:207:7)

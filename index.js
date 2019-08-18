@@ -1,4 +1,4 @@
-// Usage: node index.js [logfile.log] [filter, e.g. ERROR]
+const usage = "Usage: node index.js [logfile.log] [filter, e.g. ERROR]";
 
 const fs = require('fs');
 const lineReader = require('readline');
@@ -17,18 +17,36 @@ const logsource = {
     client: 'client',
     server: 'server'
 };
+const emptyValue = '-';
 const clientFields = {
     type: true, message: true, error: true, timestamp: true, environment: true, ip: true, app: true
 };
+const serverFields = {
+    env: true, type: true
+};
 const filter = process.argv[3] ? process.argv[3].toUpperCase() : null;
-const clientRegExp = /^{"type":\s+"client".+}$/i;
-const serverRegExp = /^<(\d{1,3})>(\d+) (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z) (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) (\w+) (\d+) (\S+) (\[.+]) (.+)$/i;
+const clientRegExp = /^{"type":\s+"client".*}$/;
+const serverRegExp = /^<(\d{1,3})>(\d+) (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z) (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) (\w+) (\d+) (\S+) (\[.*]) (.*)$/;
+const structuredDataRegExp = /\[(.*?)]/g;
+const sdIdRegExp = /(.+)@[^\s]+/;
+const sdParamsRegExp = /(\w+)="((\w|\s)*)"/g;
 let lastTimestamp = '';
 let stacktraceMessage = '';
 let stacktraceFlag = false;
 
+const stream = fs.createReadStream(process.argv[2] || 'complex.log');
+stream.on('error', function(err){
+    if(err.code === 'ENOENT'){
+        console.log('File', `'${process.argv[2]}'`, 'was not found');
+        console.log(usage);
+    }else{
+        console.error(err);
+        console.log(usage);
+    }
+});
+
 const lr = lineReader.createInterface({
-    input: fs.createReadStream(process.argv[2] || 'complex.log'),
+    input: stream,
     // output: process.stdout,
     // console: false
 });
@@ -102,7 +120,7 @@ function parseClient(line) {
 }
 
 function parseServer(line) {
-    let prival, version, timestamp, host, app, pid, mid, structuredData, message, severity;
+    let prival, version, timestamp, host, app, pid, mid, structuredData, message, severity, parsed;
     const serverData = serverRegExp.exec(line);
     let instance = getNewInstance();
     if (serverData.length) {
@@ -124,10 +142,87 @@ function parseServer(line) {
         instance.message = message;
         instance.type = getServerEventType(severity);
         lastTimestamp = timestamp;
-        console.log('>>> structured data:', structuredData);
+        parsed = parseStructuredData(structuredData);
+        if (parsed.mainFields && parsed.mainFields.env) {
+            instance.env = parsed.mainFields.env;
+        }
+        if (parsed.data && Object.keys(parsed.data).length) {
+            instance._data = parsed.data;
+        }
+        if (pid !== emptyValue) {
+            instance._data = instance._data || {};
+            instance._data.pid = pid;
+        }
+        if (mid !== emptyValue) {
+            instance._data = instance._data || {};
+            instance._data.mid = mid;
+        }
     }
 
     return instance;
+}
+
+function parseStructuredData(structuredData) {
+    let parsedSdData, item, parsed, mainFields;
+    const data = [...structuredData.matchAll(structuredDataRegExp)];
+    if (data.length < 2) {
+        parsedSdData = {};
+        item = data[0][1];
+        if (item) {
+            parsed = getSdParams(item);
+            parsedSdData[parsed.sdKey] = parsed[parsed.sdKey];
+            if (parsed.mainFields) {
+                mainFields = parsed.mainFields;
+            }
+        }
+    } else {
+        parsedSdData = {};
+        data.forEach(sdElement => {
+            item = sdElement[1];
+            parsed = getSdParams(item);
+            parsedSdData[parsed.sdKey] = parsed[parsed.sdKey];
+            if (parsed.mainFields) {
+                mainFields = parsed.mainFields;
+            }
+        });
+    }
+    return { data: parsedSdData, mainFields: mainFields };
+}
+
+function getSdParams(sdElement) {
+    let sdId, sdKey, sdData, parsedData;
+    const sd = sdIdRegExp.exec(sdElement);
+    if (sd) {
+        sdId = sd[0];
+        sdKey = sd[1];
+        sdElement = sdElement.replace(sdId, '').trim();
+        sdData = parseSdParams(sdElement);
+        if (sdData) {
+            parsedData = {
+                sdKey: sdKey,
+                mainFields: sdData.mainFields,
+                [sdKey]: sdData.params
+            };
+        }
+    }
+    return parsedData;
+}
+
+function parseSdParams(sdParams) {
+    let params, mainFields = null;
+    const data = [...sdParams.matchAll(sdParamsRegExp)];
+    if (data.length) {
+        params = {};
+        data.forEach(item => {
+            if (serverFields[item[1]]) {
+                mainFields = mainFields || {};
+                mainFields[item[1]] = item[2];
+            } else {
+                params[item[1]] = item[2];
+            }
+        });
+    }
+    return { params: params, mainFields: mainFields };
 }
 
 function getServerEventType(severity) {
