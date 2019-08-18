@@ -5,7 +5,8 @@ const lineReader = require('readline');
 
 const event = {
     line: 'line',
-    close: 'close'
+    close: 'close',
+    error: 'error'
 };
 const type = {
     info: 'INFO',
@@ -35,7 +36,7 @@ let stacktraceMessage = '';
 let stacktraceFlag = false;
 
 const stream = fs.createReadStream(process.argv[2] || 'complex.log');
-stream.on('error', function(err){
+stream.on(event.error, function(err){
     if(err.code === 'ENOENT'){
         console.log('File', `'${process.argv[2]}'`, 'was not found');
         console.log(usage);
@@ -122,6 +123,7 @@ function parseClient(line) {
 function parseServer(line) {
     let prival, version, timestamp, host, app, pid, mid, structuredData, message, severity, parsed;
     const serverData = serverRegExp.exec(line);
+    serverRegExp.lastIndex = 0;
     let instance = getNewInstance();
     if (serverData.length) {
         prival = parseInt(serverData[1], 10);
@@ -164,10 +166,9 @@ function parseServer(line) {
 
 function parseStructuredData(structuredData) {
     let parsedSdData, item, parsed, mainFields;
-    const data = [...structuredData.matchAll(structuredDataRegExp)];
-    if (data.length < 2) {
-        parsedSdData = {};
-        item = data[0][1];
+    const data = structuredData.match(structuredDataRegExp);
+    function parseItem() {
+        item = item.substring(1, item.length - 1);
         if (item) {
             parsed = getSdParams(item);
             parsedSdData[parsed.sdKey] = parsed[parsed.sdKey];
@@ -175,15 +176,17 @@ function parseStructuredData(structuredData) {
                 mainFields = parsed.mainFields;
             }
         }
+    }
+
+    if (data.length < 2) {
+        parsedSdData = {};
+        item = data[0];
+        parseItem();
     } else {
         parsedSdData = {};
         data.forEach(sdElement => {
-            item = sdElement[1];
-            parsed = getSdParams(item);
-            parsedSdData[parsed.sdKey] = parsed[parsed.sdKey];
-            if (parsed.mainFields) {
-                mainFields = parsed.mainFields;
-            }
+            item = sdElement;
+            parseItem();
         });
     }
     return { data: parsedSdData, mainFields: mainFields };
@@ -192,6 +195,7 @@ function parseStructuredData(structuredData) {
 function getSdParams(sdElement) {
     let sdId, sdKey, sdData, parsedData;
     const sd = sdIdRegExp.exec(sdElement);
+    sdIdRegExp.lastIndex = 0;
     if (sd) {
         sdId = sd[0];
         sdKey = sd[1];
@@ -210,18 +214,20 @@ function getSdParams(sdElement) {
 
 function parseSdParams(sdParams) {
     let params, mainFields = null;
-    const data = [...sdParams.matchAll(sdParamsRegExp)];
-    if (data.length) {
-        params = {};
-        data.forEach(item => {
-            if (serverFields[item[1]]) {
+    let data = sdParamsRegExp.exec(sdParams);
+    while (data !== null) {
+        if (data.length) {
+            params = params || {};
+            if (serverFields[data[1]]) {
                 mainFields = mainFields || {};
-                mainFields[item[1]] = item[2];
+                mainFields[data[1]] = data[2];
             } else {
-                params[item[1]] = item[2];
+                params[data[1]] = data[2];
             }
-        });
+        }
+        data = sdParamsRegExp.exec(sdParams);
     }
+    sdParamsRegExp.lastIndex = 0;
     return { params: params, mainFields: mainFields };
 }
 
