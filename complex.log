@@ -23,3 +23,4 @@ BadRequestError: request aborted
 <11>1 2018-02-09T12:00:00.003Z 127.0.0.1 myapp - - [info@myapp env="qa" type="server" another="data"][data@myapp foo="data"] Critical Error
 <11>1 2018-02-09T12:00:00.003Z 127.0.0.1 mysuperapp 82133 - - %% Some other Error
 <11>1 - - - - - -
+<13>1 2018-11-14T04:08:13.076005-05:00 ASTitan madrang 5421 TestMsg [timeQuality tzKnown="1" isSynced="1" syncAccuracy="777000"] Message from debian Syslog.
