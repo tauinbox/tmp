@@ -48,8 +48,6 @@ stream.on(event.error, function(err){
 
 const lr = lineReader.createInterface({
     input: stream,
-    // output: process.stdout,
-    // console: false
 });
 
 lr.on(event.line, parseLine);
