@@ -29,7 +29,7 @@ const filter = process.argv[3] ? process.argv[3].toUpperCase() : null;
 const clientRegExp = /^{"type":\s+"client".*}$/;
 const serverRegExp = /^<(\d{1,3})>(\d{0,2}) (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z|-) ([\x00-\x7F]+|-) ([\x00-\x7F]+|-) ([\x00-\x7F]+|-) ([\x00-\x7F]+|-) (\[.*]|-)\s*(.*)$/;
 const structuredDataRegExp = /\[(.*?)]/g;
-const sdIdRegExp = /(.+)@[^\s]+/;
+const sdIdRegExp = /^(\w+)@?\w*/;
 const sdParamsRegExp = /(\w+)="((\w|\s)*)"/g;
 let lastTimestamp = '';
 let stacktraceMessage = '';
