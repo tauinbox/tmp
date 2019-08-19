@@ -18,7 +18,7 @@ const logsource = {
     client: 'client',
     server: 'server'
 };
-const emptyValue = '-';
+const nilValue = '-';
 const clientFields = {
     type: true, message: true, error: true, timestamp: true, environment: true, ip: true, app: true
 };
@@ -27,7 +27,7 @@ const serverFields = {
 };
 const filter = process.argv[3] ? process.argv[3].toUpperCase() : null;
 const clientRegExp = /^{"type":\s+"client".*}$/;
-const serverRegExp = /^<(\d{1,3})>(\d+) (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z) (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) (\w+) (\S+) (\S+) (\[.*]|-) (.*)$/;
+const serverRegExp = /^<(\d{1,3})>(\d{0,2}) (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z|-) ([\x00-\x7F]+|-) ([\x00-\x7F]+|-) ([\x00-\x7F]+|-) ([\x00-\x7F]+|-) (\[.*]|-)\s*(.*)$/;
 const structuredDataRegExp = /\[(.*?)]/g;
 const sdIdRegExp = /(.+)@[^\s]+/;
 const sdParamsRegExp = /(\w+)="((\w|\s)*)"/g;
@@ -138,14 +138,14 @@ function parseServer(line) {
         severity = prival & 7;
 
         instance.logsource = logsource.server;
-        instance.program = app;
-        instance.host = host;
-        instance.timestamp = timestamp;
-        instance.message = message;
+        app !== nilValue && (instance.program = app);
+        host !== nilValue && (instance.host = host);
+        timestamp !== nilValue && (instance.timestamp = timestamp);
+        message && (instance.message = message);
         instance.type = getServerEventType(severity);
         lastTimestamp = timestamp;
 
-        if (structuredData !== emptyValue) {
+        if (structuredData !== nilValue) {
             parsed = parseStructuredData(structuredData);
             if (parsed.mainFields && parsed.mainFields.env) {
                 instance.env = parsed.mainFields.env;
@@ -154,11 +154,11 @@ function parseServer(line) {
                 instance._data = parsed.data;
             }
         }
-        if (pid !== emptyValue) {
+        if (pid !== nilValue) {
             instance._data = instance._data || {};
             instance._data.pid = pid;
         }
-        if (mid !== emptyValue) {
+        if (mid !== nilValue) {
             instance._data = instance._data || {};
             instance._data.mid = mid;
         }

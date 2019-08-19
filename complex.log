@@ -22,3 +22,4 @@ BadRequestError: request aborted
     at TCP._handle.close [as _onclose] (net.js:547:12)
 <11>1 2018-02-09T12:00:00.003Z 127.0.0.1 myapp - - [info@myapp env="qa" type="server" another="data"][data@myapp foo="data"] Critical Error
 <11>1 2018-02-09T12:00:00.003Z 127.0.0.1 mysuperapp 82133 - - %% Some other Error
+<11>1 - - - - - -
