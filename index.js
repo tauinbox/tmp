@@ -27,7 +27,7 @@ const serverFields = {
 };
 const filter = process.argv[3] ? process.argv[3].toUpperCase() : null;
 const clientRegExp = /^{"type":\s+"client".*}$/;
-const serverRegExp = /^<(\d{1,3})>(\d+) (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z) (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) (\w+) (\d+) (\S+) (\[.*]) (.*)$/;
+const serverRegExp = /^<(\d{1,3})>(\d+) (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z) (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) (\w+) (\S+) (\S+) (\[.*]|-) (.*)$/;
 const structuredDataRegExp = /\[(.*?)]/g;
 const sdIdRegExp = /(.+)@[^\s]+/;
 const sdParamsRegExp = /(\w+)="((\w|\s)*)"/g;
@@ -144,12 +144,15 @@ function parseServer(line) {
         instance.message = message;
         instance.type = getServerEventType(severity);
         lastTimestamp = timestamp;
-        parsed = parseStructuredData(structuredData);
-        if (parsed.mainFields && parsed.mainFields.env) {
-            instance.env = parsed.mainFields.env;
-        }
-        if (parsed.data && Object.keys(parsed.data).length) {
-            instance._data = parsed.data;
+
+        if (structuredData !== emptyValue) {
+            parsed = parseStructuredData(structuredData);
+            if (parsed.mainFields && parsed.mainFields.env) {
+                instance.env = parsed.mainFields.env;
+            }
+            if (parsed.data && Object.keys(parsed.data).length) {
+                instance._data = parsed.data;
+            }
         }
         if (pid !== emptyValue) {
             instance._data = instance._data || {};
@@ -160,7 +163,6 @@ function parseServer(line) {
             instance._data.mid = mid;
         }
     }
-
     return instance;
 }
 
@@ -201,7 +203,7 @@ function getSdParams(sdElement) {
         sdKey = sd[1];
         sdElement = sdElement.replace(sdId, '').trim();
         sdData = parseSdParams(sdElement);
-        if (sdData) {
+        if (sdData.params) {
             parsedData = {
                 sdKey: sdKey,
                 mainFields: sdData.mainFields,
